@@ -94,7 +94,6 @@ class VideoGameFullTest extends Simulation {
       exec(getAllVideoGames())
         .pause(2)
         .exec(postNewGame())
-        .pause(2)
         .exec(getLastPostedGame())
         .pause(2)
         .exec(deleteLastPostedGame())
