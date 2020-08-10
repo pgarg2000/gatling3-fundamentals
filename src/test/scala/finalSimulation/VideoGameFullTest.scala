@@ -3,23 +3,22 @@ package finalSimulation
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import common.HttpCalls
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
-class VideoGameFullTest extends Simulation {
+class VideoGameFullTest extends HttpCalls {
 
-  val httpConf = http
-    .baseUrl("http://video-game-db.eu-west-2.elasticbeanstalk.com/app/")
-    .header("Accept", "application/json")
+
 
   /*** Variables ***/
   // runtime variables
   def userCount: Int = getProperty("USERS", "3").toInt
   def rampDuration: Int = getProperty("RAMP_DURATION", "10").toInt
-  def testDuration: Int = getProperty("DURATION", "60").toInt
+  def testDuration: Int = getProperty("DURATION", "15").toInt
 
   // other variables
   var idNumbers = (20 to 1000).iterator
@@ -60,12 +59,6 @@ class VideoGameFullTest extends Simulation {
   }
 
   /*** HTTP Calls ***/
-  def getAllVideoGames() = {
-    exec(
-      http("Get All Video Games")
-        .get("videogames")
-        .check(status.is(200)))
-  }
 
   def postNewGame() = {
     feed(customFeeder).
@@ -91,7 +84,7 @@ class VideoGameFullTest extends Simulation {
   /*** Scenario Design ***/
   val scn = scenario("Video Game DB")
     .forever() {
-      exec(getAllVideoGames())
+      exec(getAllVideoGames)
         .pause(2)
         .exec(postNewGame())
         .exec(getLastPostedGame())
@@ -102,11 +95,15 @@ class VideoGameFullTest extends Simulation {
   /*** Setup Load Simulation ***/
   setUp(
     scn.inject(
-      nothingFor(5 seconds),
+      nothingFor(2 seconds),
       rampUsers(userCount) during (rampDuration seconds))
   )
     .protocols(httpConf)
     .maxDuration(testDuration seconds)
+      .assertions(
+        global.responseTime.max.lt(1),
+        global.successfulRequests.percent.gt(99)
+      )
 
   /*** After ***/
   after {
